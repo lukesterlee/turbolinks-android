@@ -18,7 +18,6 @@ import android.webkit.ValueCallback;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -87,14 +86,19 @@ public class TurbolinksSession implements TurbolinksScrollUpCallback {
 
         this.webView = TurbolinksHelper.createWebView(applicationContext);
         this.webView.addJavascriptInterface(this, JAVASCRIPT_INTERFACE_NAME);
-        this.webView.setWebViewClient(new WebViewClient() {
+
+        setWebViewClient(new TurbolinksWebViewClient());
+    }
+
+    public void setWebViewClient(TurbolinksWebViewClient webViewClient) {
+        webViewClient.setCallback(new TurbolinksWebViewClientCallback() {
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 coldBootInProgress = true;
             }
 
             @Override
-            public void onPageFinished(WebView view, final String location) {
+            public void onPageFinished(WebView view, String location) {
                 String jsCall = "window.webView == null";
                 webView.evaluateJavascript(jsCall, new ValueCallback<String>() {
                     @Override
@@ -141,7 +145,6 @@ public class TurbolinksSession implements TurbolinksScrollUpCallback {
 
             @Override
             public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-                super.onReceivedError(view, errorCode, description, failingUrl);
                 resetToColdBoot();
 
                 turbolinksAdapter.onReceivedError(errorCode);
@@ -151,8 +154,6 @@ public class TurbolinksSession implements TurbolinksScrollUpCallback {
             @Override
             @TargetApi(Build.VERSION_CODES.M)
             public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse errorResponse) {
-                super.onReceivedHttpError(view, request, errorResponse);
-
                 if (request.isForMainFrame()) {
                     resetToColdBoot();
                     turbolinksAdapter.onReceivedError(errorResponse.getStatusCode());
@@ -160,6 +161,7 @@ public class TurbolinksSession implements TurbolinksScrollUpCallback {
                 }
             }
         });
+        this.webView.setWebViewClient(webViewClient);
     }
 
     // ---------------------------------------------------
